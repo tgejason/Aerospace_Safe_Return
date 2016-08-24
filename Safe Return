@@ -1,4 +1,3 @@
-
 # PROBLEM 2
 # 
 # Figure out what value of the boost velocity will allow the spaceship to 
@@ -24,24 +23,25 @@ marker_time = 0.5 * 3600. # s
 tolerance = 100000. # m
 
 
-    
 
 def moon_position(time):
 # Task 1: Compute the moon's position (a vector) at time t. Let it start at moon_initial_angle, not on the horizontal axis.   
-    ###Your code here
-    position = numpy.zeros(2) # m
-
-    moon_angle =  2 * math.pi * time /  moon_period  + moon_initial_angle
-    position [0] = moon_distance * math.sin(moon_angle)
-    position [1] = moon_distance * math.cos(moon_angle)
+    ###Your code here.
+    position = numpy.zeros(2) #m array for the Moon_pos 
+    moon_angle =  moon_initial_angle + 2 * math.pi * time / moon_period 
+    position [0] = moon_distance * numpy.array(math.cos(moon_angle))
+    position[1] = moon_distance * numpy.array(math.sin(moon_angle))
+    
     return position
 
 def acceleration(time, position):
 # Task 2: Compute the spacecraft's acceleration due to gravity
 	###Your code here.
-    vector_earth = -position
-    vector_moon = moon_position - position
-    acc = gravitational_constant * ((earth_mass * vector_earth  / numpy.linalg.norm(vector_to_earth)**3 ) + earth_mass * vector_moon  / numpy.linalg.norm(vector_to_moon)**3)
+    moon_pos = moon_position(time)
+    vector_from_moon = position - moon_pos
+    vector_from_earth = position
+    acc = -gravitational_constant * ( earth_mass / numpy.linalg.norm(vector_from_earth)**3 * vector_from_earth
+                                        + moon_mass / numpy.linalg.norm(vector_from_moon)**3 * vector_from_moon)
     return acc  
 
 axes = matplotlib.pyplot.gca()
@@ -57,7 +57,7 @@ def apply_boost():
     # They are simply used for plotting and evaluating your code, so none of the 
     # code that you add should involve them.
     
-    boost = 0. # m/s Change this to the correct value from the list above after everything else is done.
+    boost = 10. # m/s Change this to the correct value from the list above after everything else is done.
     position_list = [numpy.array([-6.701e6, 0.])] # m
     velocity_list = [numpy.array([0., -10.818e3])] # m / s
     times_list = [0]
@@ -75,19 +75,27 @@ def apply_boost():
         # Both velocity changes should happen in the direction of the rocket's motion at the time they occur.
         
         ###Your code here.
-        if current time >= 101104 and not mcc2_burn_done:
-            velocity[current time] -= 7.04. * velocity[current time] / numpy.linalg.norm(velocity[current time])
-            mcc2_burn = True
-        if current time >= 212100 and not dps1_burn_done:
-            velocity[current time] += boost. * velocity[current time] / numpy.linalg.norm(velocity[current time])
-            dps_burn = True
+        if not mcc2_burn_done and current_time >= 101104:
+            velocity -= 7.04 / numpy.linalg.norm(velocity) * velocity 
+            mcc2_burn_done = True
             
-            
+        if not dps1_burn_done and current_time >= 212100:
+            velocity += boost / numpy.linalg.norm(velocity) * velocity
+            dps1_burn_done = True
         #Task 4: Implement Heun's method with adaptive step size. Note that the time is advanced at the end of this while loop.
         ###Your code here.
-
+        acceleration0 = acceleration(current_time, position)
+        velocityE = velocity + h * acceleration0
+        positionE = position + h * velocity
+        velocityH = velocity + h * 0.5 * (acceleration0 + 
+                                            acceleration(current_time + h, positionE))
+        positionH = position + h * 0.5 * (velocity + velocityE)
+        
+        velocity = velocityH
+        position = positionH
         ###Your code here.
-
+        lteError = numpy.linalg.norm(positionE - positionH) + total_duration * numpy.linalg.norm(velocityE- velocityH)
+        h_new = h * math.sqrt(tolerance / lteError)
         h_new = min(0.5 * marker_time, max(0.1, h_new)) # restrict step size to reasonable range
             
         current_time += h
